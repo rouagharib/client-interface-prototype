@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prototype Interface Client — Demande + Upload</title>
+  <style>
+    :root {
+      --bg: #0f172a;           /* slate-900 */
+      --panel: #111827;        /* gray-900 */
+      --muted: #94a3b8;        /* slate-400 */
+      --text: #e5e7eb;         /* gray-200 */
+      --primary: #38bdf8;      /* sky-400 */
+      --primary-600: #0284c7;  /* sky-600 */
+      --accent: #22c55e;       /* green-500 */
+      --danger: #ef4444;       /* red-500 */
+      --warn: #f59e0b;         /* amber-500 */
+      --card: #0b1220;         /* dark card */
+      --border: #1f2937;       /* gray-800 */
+      --ring: rgba(56,189,248,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 80% -10%, rgba(56,189,248,.08), transparent),
+                  radial-gradient(600px 400px at 10% 120%, rgba(34,197,94,.06), transparent),
+                  var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans,
+                   "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(56,189,248,.15), rgba(56,189,248,.05));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 30px rgba(2, 8, 23, .7);
+    }
+
+    h1 { font-size: 1.6rem; margin: 0 0 6px; letter-spacing: .2px; }
+    p.lead { margin: 0; color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 980px) {
+      .grid { grid-template-columns: 1.1fr .9fr; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(17,24,39,.8), rgba(17,24,39,.6));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(2, 8, 23, .65);
+    }
+
+    .section-title { font-size: 1.1rem; margin: 0 0 12px; }
+
+    label { display: block; margin: 10px 0 6px; color: #cbd5e1; }
+
+    select, textarea, input[type="text"] {
+      width: 100%;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      transition: box-shadow .2s, border-color .2s, transform .02s;
+    }
+
+    select:focus, textarea:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    textarea { min-height: 120px; resize: vertical; }
+
+    .hint { color: var(--muted); font-size: .9rem; }
+
+    .dropzone {
+      border: 2px dashed #2b3648;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(11,18,32,.7), rgba(11,18,32,.5));
+      padding: 18px;
+      text-align: center;
+      transition: border-color .2s, box-shadow .2s, transform .02s;
+      cursor: pointer;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 6px var(--ring);
+      transform: translateY(-1px);
+    }
+
+    .dz-instructions { color: var(--muted); margin-top: 6px; font-size: .95rem; }
+
+    .previews {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .thumb {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 120px auto;
+    }
+
+    .thumb-img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      display: block;
+      background: #0b1220;
+    }
+
+    .thumb-meta {
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: .9rem;
+    }
+
+    .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(8,15,28,.8), rgba(8,15,28,.6));
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .02s, box-shadow .2s, background .2s, border-color .2s;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .btn:hover { border-color: #334155; }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: linear-gradient(180deg, var(--primary), var(--primary-600));
+      border-color: transparent;
+      color: #03111a;
+      font-weight: 700;
+      letter-spacing: .2px;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, .35);
+    }
+
+    .btn-outline { background: transparent; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .error { color: var(--danger); font-size: .95rem; margin-top: 8px; }
+    .warn  { color: var(--warn);  font-size: .95rem; margin-top: 8px; }
+
+    .json-block {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .9rem;
+      color: #cbd5e1;
+      min-height: 160px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .badge { font-size: .8rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+    footer { text-align: center; color: var(--muted); font-size: .9rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header aria-label="En-tête">
+      <h1>Interface client — Prototype initial</h1>
+      <p class="lead">Upload image/croquis, saisie de la demande, génération JSON (mock backend).</p>
+    </header>
+
+    <div class="grid">
+      <!-- Formulaire principal -->
+      <section class="card" aria-labelledby="form-title">
+        <h2 id="form-title" class="section-title">Nouvelle demande</h2>
+        <form id="requestForm" novalidate>
+          <div>
+            <label for="clientId">Identifiant client (optionnel)</label>
+            <input type="text" id="clientId" name="clientId" placeholder="ex: CL-123" autocomplete="off" />
+            <p class="hint">Laissez vide pour générer automatiquement.</p>
+          </div>
+
+          <div>
+            <label for="category">Catégorie produit <span class="badge">obligatoire</span></label>
+            <select id="category" name="category" required>
+              <option value="" disabled selected>— Sélectionner —</option>
+              <option value="textile_medical">Textile médical</option>
+              <option value="accessoire_paramedical">Accessoires paramédicaux</option>
+              <option value="vetement_professionnel">Vêtements professionnels</option>
+              <option value="protection">Équipements de protection</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="description">Description / besoins <span class="badge">obligatoire</span></label>
+            <textarea id="description" name="description" placeholder="Décrivez votre besoin : matière, coloris, contraintes, dimensions, etc." required></textarea>
+          </div>
+
+          <div>
+            <label for="fileInput">Upload image / croquis</label>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Glisser-déposer des fichiers ou cliquer pour sélectionner">
+              <strong>Glissez-déposez</strong> vos fichiers ici ou <span style="text-decoration: underline;">cliquez pour sélectionner</span>.
+              <div class="dz-instructions">Formats acceptés : JPG, PNG, PDF. Max 10 Mo par fichier. Multi-fichiers OK.</div>
+              <input id="fileInput" type="file" accept="image/*,.pdf" multiple hidden />
+            </div>
+            <div id="fileWarnings" class="warn" aria-live="polite" style="display:none"></div>
+            <div id="previews" class="previews" aria-live="polite"></div>
+          </div>
+
+          <div class="actions" style="margin-top: 14px;">
+            <button type="submit" class="btn btn-primary">Envoyer la demande</button>
+            <button type="button" id="resetBtn" class="btn btn-outline">Réinitialiser</button>
+          </div>
+          <div id="formErrors" class="error" aria-live="assertive" style="display:none"></div>
+        </form>
+      </section>
+
+      <!-- Sortie / JSON -->
+      <section class="card" aria-labelledby="output-title">
+        <h2 id="output-title" class="section-title">Sortie (Mock backend)</h2>
+        <div class="actions" style="margin-bottom: 8px;">
+          <button type="button" id="downloadJsonBtn" class="btn">Télécharger JSON</button>
+          <button type="button" id="clearOutputBtn" class="btn">Vider la sortie</button>
+        </div>
+        <div id="jsonOutput" class="json-block" aria-live="polite" aria-label="Bloc JSON"></div>
+      </section>
+    </div>
+
+    <footer>Prototype autonome — aucun backend requis. Les fichiers ne sont pas réellement téléversés, ils restent en mémoire pour la démo.</footer>
+  </div>
+
+  <script>
+    // ---------- Utilitaires ----------
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    function uid(prefix = "ID") {
+      const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const time = Date.now().toString(36).toUpperCase();
+      return `${prefix}-${time}${rand}`;
+    }
+
+    function formatBytes(bytes) {
+      const units = ['octets', 'Ko', 'Mo', 'Go'];
+      let i = 0; let val = bytes;
+      while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+      return `${val.toFixed(val < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+    }
+
+    // ---------- État du module ----------
+    const state = {
+      files: /** @type {Array<{id:string,file:File,previewUrl?:string}>} */([]),
+      lastPayload: null
+    };
+
+    // ---------- Dropzone ----------
+    const dropzone = $('#dropzone');
+    const fileInput = $('#fileInput');
+    const previews = $('#previews');
+    const warnings = $('#fileWarnings');
+
+    // Limites/validation
+    const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
+
+    function showWarning(msg) {
+      warnings.style.display = 'block';
+      warnings.textContent = msg;
+      clearTimeout(showWarning._t);
+      showWarning._t = setTimeout(() => { warnings.style.display = 'none'; }, 5000);
+    }
+
+    function validateFile(file) {
+      if (!ACCEPTED.includes(file.type)) {
+        showWarning(`Type non supporté: ${file.name} (${file.type || 'inconnu'})`);
+        return false;
+      }
+      if (file.size > MAX_SIZE) {
+        showWarning(`Fichier trop volumineux: ${file.name} (${formatBytes(file.size)}), max 10 Mo`);
+        return false;
+      }
+      return true;
+    }
+
+    function addFiles(fileList) {
+      const files = Array.from(fileList);
+      for (const f of files) {
+        if (!validateFile(f)) continue;
+        const id = uid('FILE');
+        const item = { id, file: f };
+        if (f.type.startsWith('image/')) item.previewUrl = URL.createObjectURL(f);
+        state.files.push(item);
+      }
+      renderPreviews();
+    }
+
+    function removeFile(id) {
+      const idx = state.files.findIndex(x => x.id === id);
+      if (idx !== -1) {
+        const it = state.files[idx];
+        if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
+        state.files.splice(idx, 1);
+        renderPreviews();
+      }
+    }
+
+    function renderPreviews() {
+      previews.innerHTML = '';
+      for (const it of state.files) {
+        const isImage = !!it.previewUrl;
+        const el = document.createElement('div');
+        el.className = 'thumb';
+        const imgPart = document.createElement(isImage ? 'img' : 'div');
+        imgPart.className = 'thumb-img';
+        if (isImage) {
+          imgPart.src = it.previewUrl;
+          imgPart.alt = it.file.name;
+        } else {
+          imgPart.style.display = 'grid';
+          imgPart.style.placeItems = 'center';
+          imgPart.innerHTML = '<div style="font-size:56px; opacity:.35">📄</div>';
+        }
+        const meta = document.createElement('div');
+        meta.className = 'thumb-meta';
+        const name = document.createElement('div');
+        name.className = 'file-name';
+        name.title = `${it.file.name} — ${formatBytes(it.file.size)}`;
+        name.textContent = it.file.name;
+        const actions = document.createElement('div');
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'btn';
+        del.setAttribute('aria-label', 'Supprimer fichier');
+        del.textContent = 'Supprimer';
+        del.addEventListener('click', () => removeFile(it.id));
+        actions.appendChild(del);
+        meta.append(name, actions);
+        el.append(imgPart, meta);
+        previews.appendChild(el);
+      }
+    }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      addFiles(e.target.files);
+      fileInput.value = '';
+    });
+
+    // ---------- Soumission ----------
+    const form = $('#requestForm');
+    const jsonOutput = $('#jsonOutput');
+    const formErrors = $('#formErrors');
+
+    function buildPayload() {
+      const requestId = uid('REQ');
+      const clientId = $('#clientId').value.trim() || uid('CL');
+      const category = $('#category').value;
+      const description = $('#description').value.trim();
+      const uploaded = state.files.map(({ id, file }) => ({
+        file_id: id,
+        file_name: file.name,
+        file_type: file.type || 'unknown',
+        file_size: file.size,
+        file_url: `memory://${id}/${encodeURIComponent(file.name)}` // mock url
+      }));
+
+      return {
+        request_id: requestId,
+        client_id: clientId,
+        product_category: category,
+        description,
+        uploaded_files: uploaded,
+        status: 'en_attente',
+        date_created: new Date().toISOString()
+      };
+    }
+
+    function validateForm() {
+      const errors = [];
+      if (!$('#category').value) errors.push('Veuillez choisir une catégorie produit.');
+      if (!$('#description').value.trim()) errors.push('Veuillez renseigner la description.');
+      if (state.files.length === 0) errors.push('Veuillez ajouter au moins un fichier (image ou PDF).');
+      return errors;
+    }
+
+    function showErrors(list) {
+      if (!list.length) { formErrors.style.display = 'none'; formErrors.textContent = ''; return; }
+      formErrors.style.display = 'block';
+      formErrors.innerHTML = list.map(x => `• ${x}`).join('<br>');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errors = validateForm();
+      showErrors(errors);
+      if (errors.length) return;
+
+      const payload = buildPayload();
+      state.lastPayload = payload;
+
+      // Affichage JSON joliment formaté
+      jsonOutput.textContent = JSON.stringify(payload, null, 2);
+
+      // Simule un envoi: attente courte + reset partiel
+      await new Promise(r => setTimeout(r, 250));
+    });
+
+    // ---------- Actions secondaires ----------
+    $('#resetBtn').addEventListener('click', () => {
+      form.reset();
+      showErrors([]);
+      // nettoyer fichiers
+      for (const it of state.files) { if (it.previewUrl) URL.revokeObjectURL(it.previewUrl); }
+      state.files = [];
+      renderPreviews();
+    });
+
+    $('#clearOutputBtn').addEventListener('click', () => {
+      jsonOutput.textContent = '';
+    });
+
+    $('#downloadJsonBtn').addEventListener('click', () => {
+      if (!state.lastPayload) {
+        showWarning('Rien à télécharger : soumettez d\'abord une demande.');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(state.lastPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${state.lastPayload.request_id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
